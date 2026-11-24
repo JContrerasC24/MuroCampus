@@ -17,6 +17,10 @@ import kotlinx.coroutines.launch
 class PostsViewModel(private val repository: PostRepository) : ViewModel() {
     private val _lista = MutableStateFlow<UiState<List<Post>>>(UiState.Cargando)
     val lista: StateFlow<UiState<List<Post>>> = _lista.asStateFlow()
+    private val _usuarioFiltro = MutableStateFlow<Int?>(null)
+    val usuarioFiltro: StateFlow<Int?> = _usuarioFiltro.asStateFlow()
+    private var listaJob: Job? = null
+    private var solicitudLista = 0
 
     private val _detalle = MutableStateFlow<UiState<DetalleUi>>(UiState.Cargando)
     val detalle: StateFlow<UiState<DetalleUi>> = _detalle.asStateFlow()
@@ -29,12 +33,22 @@ class PostsViewModel(private val repository: PostRepository) : ViewModel() {
     }
 
     fun cargar() {
-        viewModelScope.launch {
+        val filtro = _usuarioFiltro.value
+        val solicitud = ++solicitudLista
+        listaJob?.cancel()
+        listaJob = viewModelScope.launch {
             _lista.value = UiState.Cargando
-            repository.listar()
+            val resultado = if (filtro == null) repository.listar() else repository.porUsuario(filtro)
+            if (solicitud != solicitudLista) return@launch
+            resultado
                 .onSuccess { _lista.value = UiState.Exito(it) }
                 .onFailure { _lista.value = UiState.Error(it.comoMensaje()) }
         }
+    }
+
+    fun filtrar(userId: Int?) {
+        _usuarioFiltro.value = userId
+        cargar()
     }
 
     fun abrir(id: Int) {

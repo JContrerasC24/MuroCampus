@@ -60,6 +60,7 @@ class MainActivity : ComponentActivity() {
                                 if (idSeleccionado != null || creando) {
                                     TextButton(onClick = {
                                         if (creando) postsViewModel.limpiarCreacion()
+                                        if (idSeleccionado != null) postsViewModel.cerrarDetalle()
                                         creando = false
                                         idSeleccionado = null
                                     }) { Text("Volver") }
@@ -90,6 +91,7 @@ class MainActivity : ComponentActivity() {
                             })
                         } else {
                             androidx.activity.compose.BackHandler {
+                                postsViewModel.cerrarDetalle()
                                 idSeleccionado = null
                             }
                             PantallaDetalle(postsViewModel)

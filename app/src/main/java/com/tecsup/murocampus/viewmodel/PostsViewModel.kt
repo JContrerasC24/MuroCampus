@@ -96,6 +96,13 @@ class PostsViewModel(private val repository: PostRepository) : ViewModel() {
         ultimoDetalleId?.let(::abrir)
     }
 
+    fun cerrarDetalle() {
+        solicitudDetalle++
+        detalleJob?.cancel()
+        detalleJob = null
+        ultimoDetalleId = null
+    }
+
     private fun Throwable.comoMensaje(): String = when (this) {
         is ErrorRepositorio.SinConexion -> message ?: "No hay conexión."
         is ErrorRepositorio.Http -> message ?: "Error HTTP $codigo."

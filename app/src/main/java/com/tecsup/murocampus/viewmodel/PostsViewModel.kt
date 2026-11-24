@@ -6,6 +6,7 @@ import com.tecsup.murocampus.data.ErrorRepositorio
 import com.tecsup.murocampus.data.PostRepository
 import com.tecsup.murocampus.model.Post
 import com.tecsup.murocampus.model.Comentario
+import com.tecsup.murocampus.model.NuevoPost
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -19,6 +20,8 @@ class PostsViewModel(private val repository: PostRepository) : ViewModel() {
     val lista: StateFlow<UiState<List<Post>>> = _lista.asStateFlow()
     private val _usuarioFiltro = MutableStateFlow<Int?>(null)
     val usuarioFiltro: StateFlow<Int?> = _usuarioFiltro.asStateFlow()
+    private val _creacion = MutableStateFlow<UiState<Post>?>(null)
+    val creacion: StateFlow<UiState<Post>?> = _creacion.asStateFlow()
     private var listaJob: Job? = null
     private var solicitudLista = 0
 
@@ -49,6 +52,20 @@ class PostsViewModel(private val repository: PostRepository) : ViewModel() {
     fun filtrar(userId: Int?) {
         _usuarioFiltro.value = userId
         cargar()
+    }
+
+    fun publicar(titulo: String, texto: String) {
+        if (titulo.isBlank() || texto.isBlank() || _creacion.value == UiState.Cargando) return
+        viewModelScope.launch {
+            _creacion.value = UiState.Cargando
+            repository.crear(NuevoPost(userId = 1, title = titulo.trim(), body = texto.trim()))
+                .onSuccess { _creacion.value = UiState.Exito(it) }
+                .onFailure { _creacion.value = UiState.Error(it.comoMensaje()) }
+        }
+    }
+
+    fun limpiarCreacion() {
+        _creacion.value = null
     }
 
     fun abrir(id: Int) {

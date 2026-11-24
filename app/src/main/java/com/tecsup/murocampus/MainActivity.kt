@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -26,6 +27,7 @@ import com.tecsup.murocampus.data.PostRepositoryRemote
 import com.tecsup.murocampus.data.remote.RetrofitClient
 import com.tecsup.murocampus.ui.PantallaLista
 import com.tecsup.murocampus.ui.PantallaDetalle
+import com.tecsup.murocampus.ui.PantallaCrear
 import com.tecsup.murocampus.viewmodel.PostsViewModel
 import com.tecsup.murocampus.viewmodel.PostsViewModelFactory
 
@@ -41,13 +43,26 @@ class MainActivity : ComponentActivity() {
         setContent {
             MuroCampusTheme {
                 var idSeleccionado by rememberSaveable { mutableStateOf<Int?>(null) }
+                var creando by rememberSaveable { mutableStateOf(false) }
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text(if (idSeleccionado == null) "MuroCampus" else "Detalle de publicación") },
+                            title = {
+                                Text(
+                                    when {
+                                        creando -> "Crear publicación"
+                                        idSeleccionado != null -> "Detalle de publicación"
+                                        else -> "MuroCampus"
+                                    },
+                                )
+                            },
                             navigationIcon = {
-                                if (idSeleccionado != null) {
-                                    TextButton(onClick = { idSeleccionado = null }) { Text("Volver") }
+                                if (idSeleccionado != null || creando) {
+                                    TextButton(onClick = {
+                                        if (creando) postsViewModel.limpiarCreacion()
+                                        creando = false
+                                        idSeleccionado = null
+                                    }) { Text("Volver") }
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
@@ -56,9 +71,19 @@ class MainActivity : ComponentActivity() {
                             ),
                         )
                     },
+                    floatingActionButton = {
+                        if (idSeleccionado == null && !creando) {
+                            FloatingActionButton(onClick = { creando = true }) { Text("+") }
+                        }
+                    },
                 ) { padding ->
                     Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                        if (idSeleccionado == null) {
+                        if (idSeleccionado == null && creando) {
+                            PantallaCrear(postsViewModel) {
+                                postsViewModel.limpiarCreacion()
+                                creando = false
+                            }
+                        } else if (idSeleccionado == null) {
                             PantallaLista(postsViewModel, onPostClick = { post ->
                                 idSeleccionado = post.id
                                 postsViewModel.abrir(post.id)

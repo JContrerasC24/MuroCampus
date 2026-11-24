@@ -12,14 +12,20 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import com.tecsup.murocampus.ui.theme.MuroCampusTheme
 import com.tecsup.murocampus.data.PostRepositoryRemote
 import com.tecsup.murocampus.data.remote.RetrofitClient
 import com.tecsup.murocampus.ui.PantallaLista
+import com.tecsup.murocampus.ui.PantallaDetalle
 import com.tecsup.murocampus.viewmodel.PostsViewModel
 import com.tecsup.murocampus.viewmodel.PostsViewModelFactory
 
@@ -34,10 +40,16 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MuroCampusTheme {
+                var idSeleccionado by rememberSaveable { mutableStateOf<Int?>(null) }
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("MuroCampus") },
+                            title = { Text(if (idSeleccionado == null) "MuroCampus" else "Detalle de publicación") },
+                            navigationIcon = {
+                                if (idSeleccionado != null) {
+                                    TextButton(onClick = { idSeleccionado = null }) { Text("Volver") }
+                                }
+                            },
                             colors = TopAppBarDefaults.topAppBarColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -46,7 +58,17 @@ class MainActivity : ComponentActivity() {
                     },
                 ) { padding ->
                     Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                        PantallaLista(postsViewModel)
+                        if (idSeleccionado == null) {
+                            PantallaLista(postsViewModel, onPostClick = { post ->
+                                idSeleccionado = post.id
+                                postsViewModel.abrir(post.id)
+                            })
+                        } else {
+                            androidx.activity.compose.BackHandler {
+                                idSeleccionado = null
+                            }
+                            PantallaDetalle(postsViewModel)
+                        }
                     }
                 }
             }

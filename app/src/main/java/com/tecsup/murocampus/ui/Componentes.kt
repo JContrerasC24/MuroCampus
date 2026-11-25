@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -55,5 +56,18 @@ fun ErrorConReintento(mensaje: String, onReintentar: () -> Unit, modifier: Modif
     ) {
         Text(mensaje, color = MaterialTheme.colorScheme.error)
         Button(onClick = onReintentar) { Text("Reintentar") }
+    }
+}
+
+@Composable
+fun CardRevision(sugerencias: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Sugerencias del asistente", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Text(sugerencias)
+        }
     }
 }

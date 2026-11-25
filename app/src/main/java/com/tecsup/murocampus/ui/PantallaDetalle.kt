@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,9 +20,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tecsup.murocampus.viewmodel.PostsViewModel
 import com.tecsup.murocampus.viewmodel.UiState
+import com.tecsup.murocampus.viewmodel.DetalleUi
 
 @Composable
-fun PantallaDetalle(viewModel: PostsViewModel) {
+fun PantallaDetalle(viewModel: PostsViewModel, onAsistente: (DetalleUi) -> Unit = {}) {
     val estado by viewModel.detalle.collectAsStateWithLifecycle()
     when (val actual = estado) {
         UiState.Cargando -> Cargando("Cargando publicación...")
@@ -33,6 +35,9 @@ fun PantallaDetalle(viewModel: PostsViewModel) {
             Text(actual.datos.post.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text("Usuario ${actual.datos.post.userId}", color = MaterialTheme.colorScheme.primary)
             Text(actual.datos.post.body, style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = { onAsistente(actual.datos) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Consultar al Asistente Académico")
+            }
             Text("Comentarios (${actual.datos.comentarios.size})", style = MaterialTheme.typography.titleLarge)
             actual.datos.comentarios.forEach { comentario ->
                 Column(

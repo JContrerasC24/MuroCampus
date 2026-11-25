@@ -22,16 +22,25 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tecsup.murocampus.viewmodel.PostsViewModel
 import com.tecsup.murocampus.viewmodel.UiState
+import com.tecsup.murocampus.viewmodel.AsistenteViewModel
 
 @Composable
-fun PantallaCrear(viewModel: PostsViewModel, onVolver: () -> Unit) {
+fun PantallaCrear(
+    viewModel: PostsViewModel,
+    asistenteViewModel: AsistenteViewModel,
+    onVolver: () -> Unit,
+) {
     var titulo by rememberSaveable { mutableStateOf("") }
     var texto by rememberSaveable { mutableStateOf("") }
     val estado by viewModel.creacion.collectAsStateWithLifecycle()
+    val publicacionesState by viewModel.lista.collectAsStateWithLifecycle()
+    val publicacionesListas = publicacionesState is UiState.Exito
+    val revision by asistenteViewModel.revisionBorrador.collectAsStateWithLifecycle()
     LaunchedEffect(estado) {
         if (estado is UiState.Exito) {
             titulo = ""
             texto = ""
+            asistenteViewModel.limpiarRevision()
         }
     }
 
@@ -40,6 +49,10 @@ fun PantallaCrear(viewModel: PostsViewModel, onVolver: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text("Nueva publicación")
+        Text(
+            "Antes de publicar, puedes pedir al asistente que revise la claridad y encuentre temas relacionados. Al hacerlo, se enviarán el borrador y las publicaciones candidatas a Gemini. Evita incluir datos personales.",
+            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+        )
         OutlinedTextField(
             value = titulo,
             onValueChange = { titulo = it },
@@ -47,6 +60,7 @@ fun PantallaCrear(viewModel: PostsViewModel, onVolver: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
+
         OutlinedTextField(
             value = texto,
             onValueChange = { texto = it },
@@ -54,6 +68,29 @@ fun PantallaCrear(viewModel: PostsViewModel, onVolver: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             minLines = 4,
         )
+
+        Button(
+            onClick = {
+                val publicaciones = (publicacionesState as? UiState.Exito)?.datos.orEmpty()
+                asistenteViewModel.revisarBorrador(titulo, texto, publicaciones)
+            },
+            enabled = titulo.isNotBlank() && texto.isNotBlank() && publicacionesListas && revision != UiState.Cargando,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                when {
+                    !publicacionesListas -> "Cargando publicaciones..."
+                    revision == UiState.Cargando -> "Revisando borrador..."
+                    else -> "Revisar con IA y buscar similares"
+                },
+            )
+        }
+        when (val resultado = revision) {
+            UiState.Cargando -> CircularProgressIndicator()
+            is UiState.Error -> Text(resultado.mensaje, color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+            is UiState.Exito -> CardRevision(resultado.datos)
+            null -> Unit
+        }
 
         when (val actual = estado) {
             UiState.Cargando -> CircularProgressIndicator()

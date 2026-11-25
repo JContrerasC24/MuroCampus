@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -25,15 +26,22 @@ import androidx.compose.runtime.setValue
 import com.tecsup.murocampus.ui.theme.MuroCampusTheme
 import com.tecsup.murocampus.data.PostRepositoryRemote
 import com.tecsup.murocampus.data.remote.RetrofitClient
+import com.tecsup.murocampus.data.ai.AsistenteAcademicoRemote
 import com.tecsup.murocampus.ui.PantallaLista
 import com.tecsup.murocampus.ui.PantallaDetalle
 import com.tecsup.murocampus.ui.PantallaCrear
+import com.tecsup.murocampus.ui.PantallaAsistente
 import com.tecsup.murocampus.viewmodel.PostsViewModel
 import com.tecsup.murocampus.viewmodel.PostsViewModelFactory
+import com.tecsup.murocampus.viewmodel.AsistenteViewModel
+import com.tecsup.murocampus.viewmodel.AsistenteViewModelFactory
 
 class MainActivity : ComponentActivity() {
     private val postsViewModel: PostsViewModel by viewModels {
         PostsViewModelFactory(PostRepositoryRemote(RetrofitClient.api))
+    }
+    private val asistenteViewModel: AsistenteViewModel by viewModels {
+        AsistenteViewModelFactory(AsistenteAcademicoRemote())
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -44,12 +52,14 @@ class MainActivity : ComponentActivity() {
             MuroCampusTheme {
                 var idSeleccionado by rememberSaveable { mutableStateOf<Int?>(null) }
                 var creando by rememberSaveable { mutableStateOf(false) }
+                var asistenteAbierto by rememberSaveable { mutableStateOf(false) }
                 Scaffold(
                     topBar = {
                         TopAppBar(
                             title = {
                                 Text(
                                     when {
+                                        asistenteAbierto -> "Asistente académico"
                                         creando -> "Crear publicación"
                                         idSeleccionado != null -> "Detalle de publicación"
                                         else -> "MuroCampus"
@@ -57,12 +67,20 @@ class MainActivity : ComponentActivity() {
                                 )
                             },
                             navigationIcon = {
-                                if (idSeleccionado != null || creando) {
+                                if (idSeleccionado != null || creando || asistenteAbierto) {
                                     TextButton(onClick = {
-                                        if (creando) postsViewModel.limpiarCreacion()
-                                        if (idSeleccionado != null) postsViewModel.cerrarDetalle()
-                                        creando = false
-                                        idSeleccionado = null
+                                        when {
+                                            asistenteAbierto -> asistenteAbierto = false
+                                            creando -> {
+                                                postsViewModel.limpiarCreacion()
+                                                asistenteViewModel.limpiarRevision()
+                                                creando = false
+                                            }
+                                            idSeleccionado != null -> {
+                                                postsViewModel.cerrarDetalle()
+                                                idSeleccionado = null
+                                            }
+                                        }
                                     }) { Text("Volver") }
                                 }
                             },
@@ -73,15 +91,25 @@ class MainActivity : ComponentActivity() {
                         )
                     },
                     floatingActionButton = {
-                        if (idSeleccionado == null && !creando) {
+                        if (idSeleccionado == null && !creando && !asistenteAbierto) {
                             FloatingActionButton(onClick = { creando = true }) { Text("+") }
                         }
                     },
                 ) { padding ->
                     Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                        if (idSeleccionado == null && creando) {
-                            PantallaCrear(postsViewModel) {
+                        BackHandler(enabled = asistenteAbierto) {
+                            asistenteAbierto = false
+                        }
+                        BackHandler(enabled = !asistenteAbierto && idSeleccionado != null) {
+                            postsViewModel.cerrarDetalle()
+                            idSeleccionado = null
+                        }
+                        if (asistenteAbierto) {
+                            PantallaAsistente(asistenteViewModel)
+                        } else if (idSeleccionado == null && creando) {
+                            PantallaCrear(postsViewModel, asistenteViewModel) {
                                 postsViewModel.limpiarCreacion()
+                                asistenteViewModel.limpiarRevision()
                                 creando = false
                             }
                         } else if (idSeleccionado == null) {
@@ -90,11 +118,10 @@ class MainActivity : ComponentActivity() {
                                 postsViewModel.abrir(post.id)
                             })
                         } else {
-                            androidx.activity.compose.BackHandler {
-                                postsViewModel.cerrarDetalle()
-                                idSeleccionado = null
-                            }
-                            PantallaDetalle(postsViewModel)
+                            PantallaDetalle(postsViewModel, onAsistente = { detalle ->
+                                asistenteViewModel.vincular(detalle)
+                                asistenteAbierto = true
+                            })
                         }
                     }
                 }

@@ -154,6 +154,27 @@ Los casos de serialización y cancelación se verificaron con código temporal d
 - Durante la auditoría final se detectó que salir del detalle no cancelaba explícitamente una petición todavía activa. Se añadió y publicó la corrección `fix(detalle): cancela la solicitud al salir`, sin reescribir historial. Por ello el historial tiene un commit correctivo adicional respecto de los 11 pasos previstos.
 - JSONPlaceholder simula la creación y responde con id 101, pero no persiste el post. No aparecerá al consultar la lista nuevamente.
 
+## Propuesta de IA y fase 2 (`mejora-ia`)
+
+Esta rama desarrolla el **Asistente Académico de MuroCampus**, una herramienta en español relacionada con las publicaciones. Toma como referencia funciones de participación y descubrimiento de foros comunitarios —por ejemplo, revisar un borrador y mostrar conversaciones relacionadas antes de publicar— como las comprobaciones previas a publicar y las sugerencias de comunidades descritas por [Reddit](https://redditinc.com/news/making-reddit-easier-and-more-productive), sin usar su identidad visual. Los colores se ajustan al azul/celeste y blanco visibles en la [identidad pública de TECSUP](https://www.tecsup.edu.pe/).
+
+La pantalla de detalle permite conversar con el asistente usando esa publicación y sus comentarios como contexto. En el formulario de creación, el estudiante puede pedir una revisión de claridad y buscar hasta tres publicaciones relacionadas antes de decidir si publica. La sugerencia no modifica ni publica el borrador.
+
+La integración usa [Firebase AI Logic](https://firebase.google.com/docs/ai-logic) con el modelo estable `gemini-3.8-flash`; el filtrado local por palabras compartidas reduce la lista de posibles coincidencias y el modelo explica las candidatas con sus números. Ese filtro no es una búsqueda semántica ni reemplaza un índice/vector store. Las instrucciones piden responder en español, priorizar pistas y explicaciones, distinguir el contexto disponible y no repetir los correos de los comentarios. Las respuestas de IA pueden equivocarse; el estudiante debe contrastarlas con el contenido original.
+
+### Configuración para habilitar Gemini
+
+Para mantener la clave del proveedor fuera del APK, la aplicación accede a Gemini a través del SDK y proxy de Firebase AI Logic. El proyecto se conserva compilable sin Firebase configurado; al solicitar una respuesta real se mostrará un mensaje de configuración si falta el proyecto.
+
+1. En Firebase Console, crea un proyecto y registra una app Android con el identificador `com.tecsup.murocampus`.
+2. En **AI Logic**, habilita el proveedor Gemini Developer API y completa el asistente de configuración.
+3. Descarga `google-services.json` y colócalo en `app/google-services.json`. El archivo está excluido de Git.
+4. Compila e instala la variante `debug`. App Check usa el proveedor de depuración solo en debug.
+5. En Logcat, busca el token de depuración de App Check y regístralo en Firebase Console para que AI Logic acepte las solicitudes del emulador.
+6. Ejecuta la app y consulta una publicación. El texto de la publicación, los comentarios y la consulta se envían a Gemini al usar el asistente; no incluyas datos personales o sensibles.
+
+La configuración Firebase y el registro del token dependen de la cuenta del estudiante. En esta rama se verificó compilación, pero no se declara una respuesta real de Gemini: esta carpeta no tenía `google-services.json` ni un proyecto Firebase asociado durante la implementación.
+
 ## Commits y publicación
 
 Cada paso se publicó en `main` tras su commit. La corrección tardía de cancelación también se publicó y se documenta arriba. El historial remoto se debe comparar con `main` al revisar esta entrega.
